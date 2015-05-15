@@ -1,6 +1,5 @@
 import os
 import pickle
-import shelve
 
 DEFAULT_SETTINGS = {
 	"Score": 0, # счет
@@ -20,72 +19,60 @@ class Settings():
 		self.settFile = None #Если всё ок, файл будет передаваться этой переменной
 
 		#Если файл не открывается, создать новый
-		if not self.__openFile():
-			open(FILE_NAME + ".dat", 'w', encoding="utf-8")
+		self.__openFile()
+			# f = open(FILE_NAME + ".dat", 'wb')
+			# pickle.dump(DEFAULT_SETTINGS, f)
+			# f.close()
 			#Записать в него дефолтные настройки
-			if self.__openFile():
-				self.settFile["Settings"] = DEFAULT_SETTINGS
-				self.settFile.sync()
-				self.settFile.close()
+			# if self.__openFile():
+			# 	pickle.dump(DEFAULT_SETTINGS, self.settFile)
+			# 	self.settFile.close()
 
 
 	def __openFile(self):
 		""" Открывает файл настроек """
-		if os.path.exists(FILE_NAME + ".dat"):
-			try:
-				self.settFile = shelve.open(FILE_NAME, "c")
-				return True
-			except:
-				print("Ошибка открытия файла")
-				return False
-		else:
-			return False
+		try:
+			f = open(FILE_NAME + ".dat", "rb")
+			self.settFile = pickle.load(f)
+			f.close()
+			return True
+		except:
+			f = open(FILE_NAME + ".dat", 'wb')
+			pickle.dump(DEFAULT_SETTINGS, f)
+			f = open(FILE_NAME + ".dat", "rb")
+			self.settFile = pickle.load(f)
+			f.close()
+			return True
+			
 
 	def getOption(self, option):
 		""" Возвращает одну опцию из списка настроек """
-		self.option = option
-		if self.__openFile(): #Если настройки открылись
-			#Вернуть опцию
-			if self.option in self.settFile["Settings"]:
-				result = self.settFile["Settings"][option]
-				self.settFile.sync()
-				self.settFile.close()
-				return result
-			else:
-				return False
-
-	def getSettings(self):
-		""" Возвращает одну опцию из списка настроек """
-		if self.__openFile(): #Если настройки открылись
-			result = self.settFile["Settings"]
-			self.settFile.sync()
-			self.settFile.close()
-			return result
+		self.__openFile()
+		if option in self.settFile:
+			return self.settFile[option]
 		else:
 			return False
+
+	def getSettings(self):
+		""" Возвращает все настройки """
+		self.__openFile()
+		return self.settFile
 
 	def changeOption(self, option, var):
 		""" Изменяет значение опции """
-		self.option = option
-		self.var = var
-		if self.__openFile():
-			if self.option in self.settFile["Settings"]:
-				self.settFile["Settings"].update({self.option: self.var})
-				#Сразу не меняется, поэтому передать в переменную, потом заного присвоить
-				tempDict = self.settFile["Settings"]; 
-				tempDict.update({self.option: self.var}) #Обновить опцию
-				self.settFile["Settings"] = tempDict
-
-				self.settFile.sync()
-				self.settFile.close()
-				return True
-			else:
-				return False
-		else:
+		self.__openFile()
+		if option not in self.settFile:
 			return False
 
+		self.settFile[option] = var
+		f = open(FILE_NAME + ".dat", 'wb')
+		pickle.dump(self.settFile, f)
+		f.close()
 
 
 
 # test = Settings()
-# print(test.getSettings())
+# # print(test.settFile)
+# print(test.getOption("Mode"))
+# print(test.changeOption("Mode", 8))
+# print(test.getOption("Mode"))
